@@ -1,0 +1,299 @@
+// Note: Make sure to use v3000 Kaboom.js for this code
+
+import kaboom from "kaboom"
+import "kaboom/global"
+kaboom()
+//components start
+const movespeed = 200;
+const alienspeed = 100;
+let currentspeed = alienspeed;
+const leveldown = 400;
+const timeleft = 30;
+setBackground(0,0,0);
+//components end
+//score start
+const score = add([
+  text("0"),
+  pos(500, 20),
+  anchor("center"),
+  scale(1),
+  { value: 0 },
+  ])
+//score end
+
+//Load sprites
+loadSprite("invader", "sprites/invader.png"); //alien
+loadSprite("ship", "sprites/ship.png"); //ship
+loadSprite("wall", "sprites/wall.png"); //wall
+loadSprite("laser_bullet", "sprites/laser_bullet.png"); //bullet
+// load sprite end
+
+//scene tutorial start
+scene("tutorial", () => {
+  add([
+    text("Welcome to Space Invaders!"),
+    pos(width() / 2, height() / 2 - 125),
+    anchor("center"),
+    scale(0.7),
+  ])
+  add([
+    text("Created by: Von"),
+    pos(width() / 2, height() / 2 - 100),
+    anchor("center"),
+    scale(0.3),
+  ])
+  add([
+    text("Use the left and right arrow keys to move the ship"),
+    pos(width() / 2, height() / 2 - 50),
+    anchor("center"),
+    scale(0.4),
+  ])
+  add([
+    text("Press space to shoot"),
+    pos(width() / 2, height() / 2 - 25 ),
+    anchor("center"),
+    scale(0.4),
+  ])
+  add([
+    text("If invaders touch you, you lose"),
+    pos(width() / 2, height() / 2 ),
+    anchor("center"),
+    scale(0.4),
+  ])
+  add([
+    text("If timer runs out, you lose"),
+    pos(width() / 2, height() / 2 + 25),
+    anchor("center"),
+    scale(0.4),
+  ])
+  add([
+    text("Shoot all the invaders to win"),
+    pos(width() / 2, height() / 2 + 50),
+    anchor("center"),
+    scale(0.4),
+  ])
+  add([
+    text("Press any key to start the game"),
+    pos(width() / 2, height() / 2 + 125),
+    anchor("center"),
+    scale(0.5),
+  ])
+  onKeyPress(() => go("game"))
+})
+//scene tutoriall end
+//game scene start
+scene("game", () => {
+//game content
+
+  //level start
+addLevel([
+  "x yyyyyyyyyy   z",
+  "x yyyyyyyyyy   z",
+  "x yyyyyyyyyy   z",
+  "x              z",
+  "x              z",
+  "x              z",
+  "x              z",
+  "x              z",
+  "x              z",
+  "x              z",
+  "x              z",
+],{
+  tileWidth : 30,
+  tileHeight: 22,
+  tiles:{
+    "y": () => [
+      sprite("invader"),
+      area(),
+      scale(1),
+      body({isStatic : true}),
+      "alien"
+    ],
+    "x": () => [
+      sprite("wall"),
+      area(),
+      scale(1),
+      body({isStatic : true}),
+      "left_wall"
+    ],
+    "z": () => [
+      sprite("wall"),
+      area(),
+      scale(1),
+      body({isStatic : true}),
+      "right_wall"
+    ]
+  }
+})
+  // level end
+  
+//player start
+const player = add([
+  sprite("ship"),
+  pos(150, 250),
+  area(),
+  scale(1),
+  anchor("center"),
+  "player"
+  ])
+  //movement start
+  onKeyDown("left", () => {
+    player.move(-movespeed, 0)
+  })
+  onKeyDown("right", () => {
+    player.move(movespeed, 0)
+  })
+  //movement end
+//player end
+
+//timer start
+const timer = add([
+  text("0"),
+  pos(500, 20),
+  anchor("center"),
+  scale(1),
+  { time : timeleft },
+])
+// running timer start
+timer.onUpdate(() => {
+  timer.time -= dt(),
+  timer.text = timer.time.toFixed(1)
+  if (timer.time <= 0) {
+  go("lose", score.value)
+  }
+})
+  // running timer end
+  //timer end
+//bullet start
+  function spawnBullet() {
+    add([
+      sprite("laser_bullet"), 
+      pos(player.pos), 
+      color(255,255,255),
+      offscreen({destroy:true}),
+      scale(1),
+      move(-90, 300),
+      area(),
+      "bullet"
+      ])
+  }
+  //shoot bullet start
+  onKeyPress("space", () => {
+      spawnBullet()
+  })
+  //shoot bullet end
+  
+  //score on hit start
+  onCollide("alien", "bullet", (a, b) => {
+    destroy(a)
+    destroy(b)
+    score.value++,
+    score.text = score.value.toString()
+    if(score.value == 30){
+      go("win")
+    }
+  })
+  //score on hit end
+  
+//bullet end
+
+//timer start
+onKeyPress("escape", () => {
+  go("gameover")
+})
+//timer end
+
+  //alien move start
+onUpdate("alien", (alien) => {
+  alien.move(currentspeed, 0);
+  })
+  // collide with right wall start
+onCollide("alien","right_wall",() =>{
+  currentspeed = -alienspeed
+  let allAliens = get("*")[0].children
+  allAliens.forEach((aliens) => {
+    aliens.move(0, leveldown)
+  })
+})
+  // collide with right wall end
+  
+  // collide with left wall start
+onCollide("alien","left_wall",() =>{
+  currentspeed = alienspeed  
+  let allAliens = get("*")[0].children
+  allAliens.forEach((aliens) => {
+    aliens.move(0, leveldown)
+  })
+})
+  //collide with left wall end
+  
+//alien move end
+
+// alien and player collide start
+onCollide("alien", "player", () => {
+  go("gameover")
+})
+// alien and player collide end
+  
+// game content end  
+})
+//game scene end
+
+//gameover scene start
+scene("gameover", () => {
+  add([
+    text(score.value.toString()),
+    anchor("center"),
+    scale(7),
+    pos(width()/2, height()/2)
+  ])
+  add([
+    text("You lose! Gameover"),
+    anchor("center"),
+    scale(1),
+    pos(width()/2, height()/2 - 125)
+  ])
+  //try again start
+  add([
+    text("Press any key to try again"),
+    anchor("center"),
+    scale(0.5),
+    pos(width()/2, height()/2 + 100)
+  ])
+  onKeyPress(() => {
+    go("game"),
+    score.value = 0
+  })
+  //try again end
+})
+//gameover scene end
+
+//win scene start
+scene("win", () => {
+  add([
+    text(score.value.toString()),
+    anchor("center"),
+    scale(7),
+    pos(width()/2, height()/2)
+  ])
+  add([
+    text("You win!"),
+    anchor("center"),
+    scale(1),
+    pos(width()/2, height()/2 - 125)
+  ])
+  //play again start
+  add([
+    text("Press any key to play again"),
+    anchor("center"),
+    scale(0.5),
+    pos(width()/2, height()/2 + 100)
+  ])
+  onKeyPress(() => {
+    go("game"),
+    score.value = 0
+  })
+  // play again end
+})
+//win scene end
+go("tutorial")
